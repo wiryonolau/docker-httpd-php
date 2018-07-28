@@ -1,5 +1,9 @@
 FROM centos:7
 
+ENV USER_ID=1000 \ 
+    GIT_SSL_VERIFY=false \
+    SERVER_PORT=80
+
 RUN rpm --import https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-7 \
     && rpm --import https://repo.webtatic.com/yum/RPM-GPG-KEY-webtatic-el7 \
     && rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm \
@@ -22,16 +26,10 @@ RUN gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364
     && yum clean all \
     && rm -rf /var/cache/yum/*
 
-ENV USER_ID=1000 \ 
-    GIT_SSL_VERIFY=false
+COPY entrypoint /
+RUN chmod 755 /entrypoint 
 
-RUN useradd --shell /bin/bash -u $USER_ID -o -c "" -m user \
-    && usermod -aG $USER_ID apache \
-    && gosu $USER_ID git config --global http.sslverify $GIT_SSL_VERIFY
+EXPOSE ${SERVER_PORT}
 
-RUN set -e \
-    && rm -f /run/httpd/httpd.pid
-
-EXPOSE 80
-
-ENTRYPOINT ["httpd", "-D", "FOREGROUND"]
+ENTRYPOINT ["/entrypoint"]
+CMD ["httpd", "-D", "FOREGROUND"]
